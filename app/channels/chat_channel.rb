@@ -12,6 +12,11 @@ class ChatChannel < ApplicationCable::Channel
   end
 
   def chat(data)
-    ActionCable.server.broadcast(@name, data['message'].to_s)
+    msg = {
+      user: current_user,
+      content: data['message'].to_s
+    }
+
+    ActionCable.server.broadcast(@name, msg)
   end
 end

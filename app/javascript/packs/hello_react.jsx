@@ -5,7 +5,7 @@ import ReactDOM from 'react-dom'
 import PropTypes from 'prop-types'
 
 const domContainer = document.querySelector('#app');
-
+const userId = document.querySelector('#user').dataset.user
 
 // React
 const e = React.createElement;
@@ -61,10 +61,13 @@ function connected({ model, args: socket }) {
 }
 
 function received({ model, args: value }) {
+  const { user, content } = value
+
   if (model.socket) {
     const item = {
       id: uuidv4(),
-      content: '' + value
+      user: '' + user,
+      content: '' + content
     }
 
     model.items.push(item)
@@ -75,13 +78,9 @@ function received({ model, args: value }) {
 
 function add({ model }) {
   if (model.socket && model.newText) {
-    const item = {
-      id: uuidv4(),
-      content: model.newText
-    }
-  
+    model.socket.chat(model.newText)
+
     model.newText = ''
-    model.socket.chat(item.content)
   }
 
   return model
@@ -95,12 +94,20 @@ function inputNewText({ model, args: value }) {
 
 // View
 function view({ model, msg }) {
-  return <div>
+  return <div style={{maxWidth: '480px'}}>
     { console.log('->', model), ''}
     { model.socket ? '' : 'Connecting...' }
-    <form onSubmit={e => { e.preventDefault(); msg(add) }}>
-      <input value={model.newText} onInput={e => msg(inputNewText, e.target.value)} />
-      <button>+</button>
+    <form 
+      onSubmit={e => { e.preventDefault(); msg(add) }}
+      className="flex"
+    >
+      <input
+        value={model.newText}
+        onInput={e => msg(inputNewText, e.target.value)}
+        className="p-2 border rounded"
+        placeholder="Type your message here..."
+      />
+      <button className="rounded p-1 bg-green-200">Send</button>
     </form>
     <div>
       { model.items.map(item => viewItem({ item })) }
@@ -109,7 +116,29 @@ function view({ model, msg }) {
 }
 
 function viewItem({ item }) {
-  return <div key={item.id}>
-    { item.content }
-  </div>
+  if (item.user === userId) {
+    return <div className="border-b border-dotted" key={item.id}>
+      <div className="font-bold text-sm">
+        Visitor { item.user.slice(0, 6) }
+      </div>
+      <div>
+        { item.content }
+      </div>
+    </div>
+  }
+  else {
+    return <div className="border-b border-dotted" key={item.id}>
+      <div className="flex justify-end">
+        <div className="font-bold text-sm">
+          Visitor { item.user.slice(0, 6) }
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <div>
+          { item.content }
+        </div>
+      </div>
+    </div>
+  }
+
 }
