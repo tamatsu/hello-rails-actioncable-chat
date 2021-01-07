@@ -1,6 +1,4 @@
-// Run this example by adding <%= javascript_pack_tag 'hello_react' %> to the head of your layout file,
-// like app/views/layouts/application.html.erb. All it does is render <div>Hello React</div> at the bottom
-// of the page.
+import consumer from "../channels/consumer" // Action Cable. see https://railsguides.jp/action_cable_overview.html
 
 import React from 'react'
 import ReactDOM from 'react-dom'
@@ -15,7 +13,7 @@ const e = React.createElement;
 class App extends React.Component {
   constructor(props) {
     super(props);
-    this.state = init()
+    this.state = init({ msg: this.msg.bind(this) })
   }
 
   render() {
@@ -31,21 +29,60 @@ ReactDOM.render(e(App), domContainer);
 
 
 // Model
-function init() {
+function init({ msg }) {
+  consumer.subscriptions.create("ChatChannel", {
+    connected() {
+      msg(connected, this)
+    },
+  
+    disconnected() {
+    },
+  
+    received(data) {
+      msg(received, data)
+    },
+  
+    chat(str) {
+      this.perform('chat', { message: str })
+    }
+  });
+
   return {
     items: [],
-    newText: ''
+    newText: '',
+    socket: null
   }
 }
 
-function add({ model }) {
-  const item = {
-    id: uuidv4(),
-    content: model.newText
+function connected({ model, args: socket }) {
+  model.socket = socket
+
+  return model
+}
+
+function received({ model, args: value }) {
+  if (model.socket) {
+    const item = {
+      id: uuidv4(),
+      content: '' + value
+    }
+
+    model.items.push(item)
   }
 
-  model.newText = ''
-  model.items.push(item)
+  return model
+}
+
+function add({ model }) {
+  if (model.socket && model.newText) {
+    const item = {
+      id: uuidv4(),
+      content: model.newText
+    }
+  
+    model.newText = ''
+    model.socket.chat(item.content)
+  }
 
   return model
 }
@@ -60,7 +97,8 @@ function inputNewText({ model, args: value }) {
 function view({ model, msg }) {
   return <div>
     { console.log('->', model), ''}
-    <form onClick={e => { e.preventDefault(); msg(add) }}>
+    { model.socket ? '' : 'Connecting...' }
+    <form onSubmit={e => { e.preventDefault(); msg(add) }}>
       <input value={model.newText} onInput={e => msg(inputNewText, e.target.value)} />
       <button>+</button>
     </form>
@@ -71,7 +109,7 @@ function view({ model, msg }) {
 }
 
 function viewItem({ item }) {
-  return <div>
+  return <div key={item.id}>
     { item.content }
   </div>
 }
