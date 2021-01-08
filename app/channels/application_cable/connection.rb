@@ -8,7 +8,7 @@ module ApplicationCable
 
     private
       def auth_user
-        cookies.encrypted[:user_id] || reject_unauthorized_connection
+        request.session[:user_id] || reject_unauthorized_connection
       end
   end
 end
