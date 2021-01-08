@@ -13,9 +13,7 @@ class ChatChannel < ApplicationCable::Channel
       user: current_user,
       content: data['message'].to_s
     }
-    # debugger
+
     ActionCable.server.broadcast(@name, msg)
-    # broadcast_to '', msg
-    # transmit msg
   end
 end
